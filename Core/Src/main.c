@@ -32,8 +32,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 //#define EXAMPLE_1
-//#define EXAMPLE_2
-#define HEARTBEAT_EXAMPLE
+#define EXAMPLE_2
+//#define HEARTBEAT_EXAMPLE
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -156,6 +156,19 @@ int main(void)
 	}
 #endif
 
+#ifdef EXAMPLE_2
+//	  Example 2
+	for(uint8_t i = 3; i <= 8; i++)
+	{
+		txData[0] = i;
+		txHeader.DLC = 1;
+		HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
+
+		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+
+		HAL_Delay(10000);
+	}
+#endif
 
 #ifdef HEARTBEAT_EXAMPLE
 	// Store expected response for comparison in RxFifo0Callback
