@@ -56,6 +56,10 @@ uint8_t rxData[8];
 uint32_t txMailbox;
 
 uint8_t expectedHeartbeatData = 0;
+
+uint8_t idx = 0;
+const uint8_t anglesByte0[4] = {0x0, 0x0, 0x0, 0x1};
+const uint8_t anglesByte1[4] = {0x0, 0x5A, 0xB4, 0x0E};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -132,6 +136,26 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+#ifdef EXAMPLE_1
+//	  Example 1
+	for (uint8_t j = 0; j < 4; j++)
+	{
+		for(uint8_t i = 0x10; i <= 0x13; i++)
+		{
+			txHeader.StdId = i;
+			txData[0] = anglesByte0[j];
+			txData[1] = anglesByte1[j];
+
+			txHeader.DLC = 2;
+			HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
+
+			HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+
+			HAL_Delay(500);
+		}
+	}
+#endif
+
 
 #ifdef HEARTBEAT_EXAMPLE
 	// Store expected response for comparison in RxFifo0Callback
