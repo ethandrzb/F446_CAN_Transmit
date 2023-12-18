@@ -335,9 +335,11 @@ static void MX_CAN1_Init(void)
   canFilterConfig.FilterActivation = CAN_FILTER_ENABLE;
   canFilterConfig.FilterBank = 0; // 18
   canFilterConfig.FilterFIFOAssignment = CAN_FilterFIFO0;
-  canFilterConfig.FilterIdHigh = 0x010 << 5;
+
+  canFilterConfig.FilterIdHigh = 0x020 << 5;	// Can be any value if FilterMaskIDHigh is 0
   canFilterConfig.FilterIdLow = 0;
-  canFilterConfig.FilterMaskIdHigh = 0x7FC << 5;
+//  canFilterConfig.FilterMaskIdHigh = 0x7FC << 5;	// Filter by ID, ignoring 2 LSBs
+  canFilterConfig.FilterMaskIdHigh = 0x000 << 5;	// Allow all IDs through filter (i.e., don't check any ID bits)
   canFilterConfig.FilterMaskIdLow = 0x0000;
   canFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
   canFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
