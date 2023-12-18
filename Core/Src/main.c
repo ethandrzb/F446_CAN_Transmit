@@ -32,8 +32,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 //#define EXAMPLE_1
-#define EXAMPLE_2
-//#define HEARTBEAT_EXAMPLE
+//#define EXAMPLE_2
+#define HEARTBEAT_EXAMPLE
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -43,6 +43,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
+
+TIM_HandleTypeDef htim6;
 
 UART_HandleTypeDef huart2;
 
@@ -67,12 +69,51 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_CAN1_Init(void);
+static void MX_TIM6_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	// Disable button interrupts
+	HAL_NVIC_DisableIRQ(EXTI4_IRQn);
+	HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
+	HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
+
+	// Start debounce timer
+	HAL_TIM_Base_Start_IT(&htim6);
+
+	switch(GPIO_Pin)
+	{
+		case BTN_SERVO_ANGLE_DOWN_Pin:
+			idx = (idx == 0) ? 3 : idx - 1;
+			break;
+		case BTN_SERVO_ANGLE_UP_Pin:
+			idx++;
+			idx %= 4;
+			break;
+		case BTN_SERVO_ID_DOWN_Pin:
+			txHeader.StdId = (txHeader.StdId <= 0x10) ? 0x13 : txHeader.StdId - 1;
+			break;
+		case BTN_SERVO_ID_UP_Pin:
+			txHeader.StdId = (txHeader.StdId >= 0x13) ? 0x10 : txHeader.StdId + 1;
+			break;
+	}
+
+	txData[0] = anglesByte0[idx];
+	txData[1] = anglesByte1[idx];
+
+	txHeader.RTR = CAN_RTR_DATA;
+	txHeader.DLC = 2;
+
+	HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
+
+	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+}
+
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &rxHeader, rxData);
@@ -85,6 +126,19 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	}
 
 	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
+{
+	if(htim == &htim6)
+	{
+		// Re-enable button interrupts after debounce period
+		HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+		HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+		HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
+		HAL_TIM_Base_Stop_IT(&htim6);
+	}
 }
 /* USER CODE END 0 */
 
@@ -118,6 +172,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_CAN1_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
 
   txHeader.DLC = 1;
@@ -292,6 +347,44 @@ static void MX_CAN1_Init(void)
 
   HAL_CAN_ConfigFilter(&hcan1, &canFilterConfig);
   /* USER CODE END CAN1_Init 2 */
+
+}
+
+/**
+  * @brief TIM6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM6_Init(void)
+{
+
+  /* USER CODE BEGIN TIM6_Init 0 */
+
+  /* USER CODE END TIM6_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM6_Init 1 */
+
+  /* USER CODE END TIM6_Init 1 */
+  htim6.Instance = TIM6;
+  htim6.Init.Prescaler = 90-1;
+  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim6.Init.Period = 10000-1;
+  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM6_Init 2 */
+
+  /* USER CODE END TIM6_Init 2 */
 
 }
 
