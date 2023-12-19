@@ -224,18 +224,22 @@ int main(void)
 #endif
 
 #ifdef HEARTBEAT_EXAMPLE
-	// Store expected response for comparison in RxFifo0Callback
-	// Expected value should be the CAN ID of the node you want to check
-	expectedHeartbeatData = 0x10;
+	for(uint8_t id = 0x10; id <= 0x20; id += 0x10)
+	{
+		// Store expected response for comparison in RxFifo0Callback
+		// Expected value should be the CAN ID of the node you want to check
+		expectedHeartbeatData = id;
 
-	txHeader.DLC = 1;
-	txHeader.RTR = CAN_RTR_REMOTE;
+		txHeader.StdId = id;
+		txHeader.DLC = 1;
+		txHeader.RTR = CAN_RTR_REMOTE;
 
-	HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
+		HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
 
-	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 
-	HAL_Delay(1000);
+		HAL_Delay(1000);
+	}
 #endif
     /* USER CODE END WHILE */
 
