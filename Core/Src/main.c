@@ -33,7 +33,7 @@
 /* USER CODE BEGIN PD */
 //#define EXAMPLE_1
 //#define EXAMPLE_2
-#define HEARTBEAT_EXAMPLE
+//#define HEARTBEAT_EXAMPLE
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -86,6 +86,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	// Start debounce timer
 	HAL_TIM_Base_Start_IT(&htim6);
 
+	// TODO: Add buttons to control which node should be controlled
+	// This would also fix the issue of HEARTBEAT_EXAMPLE interfering with the current ID used by this function
 	switch(GPIO_Pin)
 	{
 		case BTN_SERVO_ANGLE_DOWN_Pin:
@@ -374,7 +376,7 @@ static void MX_TIM6_Init(void)
   htim6.Instance = TIM6;
   htim6.Init.Prescaler = 90-1;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 10000-1;
+  htim6.Init.Period = 20000-1;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
