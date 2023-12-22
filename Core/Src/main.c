@@ -21,7 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
+#include "../../Drivers/ssd1306/ssd1306.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,6 +44,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
+
+I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim6;
 
@@ -70,8 +73,9 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_CAN1_Init(void);
 static void MX_TIM6_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
-
+void updateManualValues();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -86,8 +90,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	// Start debounce timer
 	HAL_TIM_Base_Start_IT(&htim6);
 
-	// TODO: Add buttons to control which node should be controlled
-	// This would also fix the issue of HEARTBEAT_EXAMPLE interfering with the current ID used by this function
+	static uint8_t servoID = 0;
+	static uint8_t segID = 0x10;
+
 	switch(GPIO_Pin)
 	{
 		case BTN_SERVO_ANGLE_DOWN_Pin:
@@ -98,22 +103,31 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			idx %= 4;
 			break;
 		case BTN_SERVO_ID_DOWN_Pin:
-			txHeader.StdId = (txHeader.StdId <= 0x10) ? 0x13 : txHeader.StdId - 1;
+			servoID = (servoID <= 0) ? 0x03 : servoID - 1;
 			break;
 		case BTN_SERVO_ID_UP_Pin:
-			txHeader.StdId = (txHeader.StdId >= 0x13) ? 0x10 : txHeader.StdId + 1;
+			servoID = (servoID >= 0x03) ? 0x00 : servoID + 1;
+			break;
+		case BTN_SEG_ID_UP_Pin:
+			segID += 0x10;
+			break;
+		case BTN_SEG_ID_DOWN_Pin:
+			segID -= 0x10;
 			break;
 	}
 
 	txData[0] = anglesByte0[idx];
 	txData[1] = anglesByte1[idx];
 
+	txHeader.StdId = segID + servoID;
 	txHeader.RTR = CAN_RTR_DATA;
 	txHeader.DLC = 2;
 
 	HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
 
 	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+
+	updateManualValues();
 }
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
@@ -139,6 +153,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 
 		HAL_TIM_Base_Stop_IT(&htim6);
 	}
+}
+
+void updateManualValues()
+{
+	char buffer[11];
+
+	uint16_t angleDecimal = (anglesByte0[idx] << 8) + anglesByte1[idx];
+
+	sprintf(buffer, "%2X %2X  %3d", (unsigned int) txHeader.StdId >> 4, (unsigned int) txHeader.StdId & 0x0F, angleDecimal);
+	ssd1306_SetCursor(9, 30);
+	ssd1306_WriteString(buffer, Font_11x18, White);
+	ssd1306_UpdateScreen();
 }
 /* USER CODE END 0 */
 
@@ -173,8 +199,23 @@ int main(void)
   MX_USART2_UART_Init();
   MX_CAN1_Init();
   MX_TIM6_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
+  // Initialize SSD1306 display
+  ssd1306_Init();
+  ssd1306_Fill(Black);
+
+  // Display number labels
+  ssd1306_SetCursor(9, 10);
+  ssd1306_WriteString("ID  M   A", Font_11x18, White);
+
+  ssd1306_SetCursor(9, 30);
+  ssd1306_WriteString("XX YY  ZZZ", Font_11x18, White);
+  ssd1306_UpdateScreen();
+
+
+  // Initialize CAN Tx header
   txHeader.DLC = 1;
   txHeader.IDE = CAN_ID_STD;
   txHeader.RTR = CAN_RTR_DATA;
@@ -239,6 +280,8 @@ int main(void)
 		HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
 
 		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+
+		updateManualValues();
 
 		HAL_Delay(1000);
 	}
@@ -357,6 +400,40 @@ static void MX_CAN1_Init(void)
 }
 
 /**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
   * @brief TIM6 Initialization Function
   * @param None
   * @retval None
@@ -460,8 +537,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : BTN_SERVO_ID_UP_Pin BTN_SERVO_ID_DOWN_Pin */
-  GPIO_InitStruct.Pin = BTN_SERVO_ID_UP_Pin|BTN_SERVO_ID_DOWN_Pin;
+  /*Configure GPIO pin : BTN_SEG_ID_DOWN_Pin */
+  GPIO_InitStruct.Pin = BTN_SEG_ID_DOWN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(BTN_SEG_ID_DOWN_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : BTN_SERVO_ID_UP_Pin BTN_SERVO_ID_DOWN_Pin BTN_SEG_ID_UP_Pin */
+  GPIO_InitStruct.Pin = BTN_SERVO_ID_UP_Pin|BTN_SERVO_ID_DOWN_Pin|BTN_SEG_ID_UP_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
