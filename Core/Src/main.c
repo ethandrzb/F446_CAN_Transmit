@@ -62,9 +62,7 @@ uint32_t txMailbox;
 
 uint8_t expectedHeartbeatData = 0;
 
-uint8_t idx = 0;
-const uint8_t anglesByte0[4] = {0x0, 0x0, 0x0, 0x1};
-const uint8_t anglesByte1[4] = {0x0, 0x5A, 0xB4, 0x0E};
+uint16_t angle = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,11 +94,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	switch(GPIO_Pin)
 	{
 		case BTN_SERVO_ANGLE_DOWN_Pin:
-			idx = (idx == 0) ? 3 : idx - 1;
+			angle = (angle <= 0) ? 270: angle - 10;
 			break;
 		case BTN_SERVO_ANGLE_UP_Pin:
-			idx++;
-			idx %= 4;
+			angle += 10;
+			angle %= 270;
 			break;
 		case BTN_SERVO_ID_DOWN_Pin:
 			servoID = (servoID <= 0) ? 0x03 : servoID - 1;
@@ -116,8 +114,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			break;
 	}
 
-	txData[0] = anglesByte0[idx];
-	txData[1] = anglesByte1[idx];
+	txData[0] = angle >> 8;
+	txData[1] = angle & 0x00FF;
 
 	txHeader.StdId = segID + servoID;
 	txHeader.RTR = CAN_RTR_DATA;
@@ -159,7 +157,7 @@ void updateManualValues()
 {
 	char buffer[11];
 
-	uint16_t angleDecimal = (anglesByte0[idx] << 8) + anglesByte1[idx];
+	uint16_t angleDecimal = (txData[0] << 8) + txData[1];
 
 	sprintf(buffer, "%2X %2X  %3d", (unsigned int) txHeader.StdId >> 4, (unsigned int) txHeader.StdId & 0x0F, angleDecimal);
 	ssd1306_SetCursor(9, 30);
