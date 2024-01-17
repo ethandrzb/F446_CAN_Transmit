@@ -33,7 +33,6 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define EXAMPLE_1
-//#define EXAMPLE_1_MULTI_SEGMENT
 //#define EXAMPLE_2
 //#define HEARTBEAT_EXAMPLE
 /* USER CODE END PD */
@@ -238,35 +237,31 @@ int main(void)
 
 	for (uint8_t j = 0; j < 4; j++)
 	{
-#ifdef EXAMPLE_1_MULTI_SEGMENT
-	for(uint8_t i = 0; i <= 3; i++)
-	{
-		for(uint8_t segBase = 0x10; segBase <= 0x20; segBase += 0x10)
+		// Cycle through each servo motor connected to the segment
+		for(uint8_t i = 0; i <= 3; i++)
 		{
+			// Modify this loop to control which segments the example addresses
+			// E.g., 0x10 for segment 1, 0x20 for segment 2, etc.
+			for(uint8_t segBaseAddr = 0x10; segBaseAddr <= 0x10; segBaseAddr += 0x10)
+			{
 
-		txHeader.StdId = segBase + i;
-#else
-	for(uint8_t i = 0x10; i <= 0x13; i++)
-	{
-		txHeader.StdId = i;
-#endif
+				txHeader.StdId = segBaseAddr + i;
 
-			txData[0] = anglesByte0[j];
-			txData[1] = anglesByte1[j];
+				txData[0] = anglesByte0[j];
+				txData[1] = anglesByte1[j];
 
-			txHeader.DLC = 2;
-			HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
+				txHeader.DLC = 2;
+				HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
 
-			updateManualValues();
+				updateManualValues();
 
-			HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+				HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 
-			HAL_Delay(500);
-#ifdef EXAMPLE_1_MULTI_SEGMENT
+				HAL_Delay(500);
+			}
 		}
-#endif
+
 	}
-  }
 #endif
 
 #ifdef EXAMPLE_2
