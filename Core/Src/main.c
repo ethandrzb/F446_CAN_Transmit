@@ -232,6 +232,9 @@ int main(void)
   {
 #ifdef EXAMPLE_1
 //	  Example 1
+	const uint8_t anglesByte0[4] = {0x0, 0x0, 0x0, 0x1};
+	const uint8_t anglesByte1[4] = {0x0, 0x5A, 0xB4, 0x0E};
+
 	for (uint8_t j = 0; j < 4; j++)
 	{
 		for(uint8_t i = 0x10; i <= 0x13; i++)
@@ -242,6 +245,8 @@ int main(void)
 
 			txHeader.DLC = 2;
 			HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
+
+			updateManualValues();
 
 			HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 
