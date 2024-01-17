@@ -32,7 +32,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-//#define EXAMPLE_1
+#define EXAMPLE_1
+//#define EXAMPLE_1_MULTI_SEGMENT
 //#define EXAMPLE_2
 //#define HEARTBEAT_EXAMPLE
 /* USER CODE END PD */
@@ -237,9 +238,19 @@ int main(void)
 
 	for (uint8_t j = 0; j < 4; j++)
 	{
-		for(uint8_t i = 0x10; i <= 0x13; i++)
+#ifdef EXAMPLE_1_MULTI_SEGMENT
+	for(uint8_t i = 0; i <= 3; i++)
+	{
+		for(uint8_t segBase = 0x10; segBase <= 0x20; segBase += 0x10)
 		{
-			txHeader.StdId = i;
+
+		txHeader.StdId = segBase + i;
+#else
+	for(uint8_t i = 0x10; i <= 0x13; i++)
+	{
+		txHeader.StdId = i;
+#endif
+
 			txData[0] = anglesByte0[j];
 			txData[1] = anglesByte1[j];
 
@@ -251,8 +262,11 @@ int main(void)
 			HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 
 			HAL_Delay(500);
+#ifdef EXAMPLE_1_MULTI_SEGMENT
 		}
+#endif
 	}
+  }
 #endif
 
 #ifdef EXAMPLE_2
