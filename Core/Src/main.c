@@ -21,7 +21,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include "../../Drivers/ssd1306/ssd1306.h"
 /* USER CODE END Includes */
 
@@ -77,6 +79,7 @@ static void MX_TIM6_Init(void);
 static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 void updateManualValues();
+bool stringToCANMessage(uint8_t *buffer, uint16_t size);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -135,6 +138,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
 	HAL_GPIO_WritePin(UART_ACTIVITY_LED_GPIO_Port, UART_ACTIVITY_LED_Pin, GPIO_PIN_SET);
 
+	// Toggle LED if conversion and transmission was successful
+	if(stringToCANMessage(UART_Rx_Buffer, Size))
+	{
+		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+	}
+
 	// Clear previous string
 	ssd1306_SetCursor(0, 53);
 	ssd1306_WriteString("                  ", Font_7x10, White);
@@ -177,6 +186,41 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 
 		HAL_TIM_Base_Stop_IT(&htim6);
 	}
+}
+
+bool stringToCANMessage(uint8_t *buffer, uint16_t size)
+{
+	if(strncmp(buffer, "SET", 3) == 0)
+	{
+		unsigned int tmpID = 0;
+		unsigned int tmpAngle = 0;
+
+		// TODO: Implement hold flag
+		if(sscanf((char *) buffer, "SET %X %u", &tmpID, &tmpAngle) != 2)
+		{
+			return false;
+		}
+
+		txData[0] = tmpAngle >> 8;
+		txData[1] = tmpAngle & 0x00FF;
+
+		txHeader.StdId = tmpID;
+		txHeader.RTR = CAN_RTR_DATA;
+		txHeader.DLC = 2;
+
+		HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
+
+		// Remove this function call if no display is connected
+		updateManualValues();
+
+		return true;
+	}
+//	else if(strcmp(commandStr, "WAVE"))
+//	{
+//		return true;
+//	}
+
+	return false;
 }
 
 void updateManualValues()
