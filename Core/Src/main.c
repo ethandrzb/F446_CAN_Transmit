@@ -135,6 +135,10 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
 	HAL_GPIO_WritePin(UART_ACTIVITY_LED_GPIO_Port, UART_ACTIVITY_LED_Pin, GPIO_PIN_SET);
 
+	// Clear previous string
+	ssd1306_SetCursor(0, 53);
+	ssd1306_WriteString("                  ", Font_7x10, White);
+
 	ssd1306_SetCursor(0, 53);
 	ssd1306_WriteString(UART_Rx_Buffer, Font_7x10, White);
 	ssd1306_UpdateScreen();
