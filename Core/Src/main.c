@@ -32,7 +32,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define EXAMPLE_1
+//#define EXAMPLE_1
 //#define EXAMPLE_2
 //#define HEARTBEAT_EXAMPLE
 /* USER CODE END PD */
@@ -63,6 +63,9 @@ uint32_t txMailbox;
 uint8_t expectedHeartbeatData = 0;
 
 uint16_t angle = 0;
+
+#define UART_RX_BUFFER_SIZE 20
+uint8_t UART_Rx_Buffer[UART_RX_BUFFER_SIZE];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -126,6 +129,25 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 
 	updateManualValues();
+}
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+	HAL_GPIO_WritePin(UART_ACTIVITY_LED_GPIO_Port, UART_ACTIVITY_LED_Pin, GPIO_PIN_SET);
+
+	ssd1306_SetCursor(0, 53);
+	ssd1306_WriteString(UART_Rx_Buffer, Font_7x10, White);
+	ssd1306_UpdateScreen();
+
+//	HAL_UART_Transmit_IT(huart, UART_Rx_Buffer, Size);
+	HAL_UART_Transmit_IT(huart, "OK\n", 3);
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+	HAL_GPIO_WritePin(UART_ACTIVITY_LED_GPIO_Port, UART_ACTIVITY_LED_Pin, GPIO_PIN_RESET);
+
+	HAL_UARTEx_ReceiveToIdle_IT(&huart2, UART_Rx_Buffer, UART_RX_BUFFER_SIZE);
 }
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
@@ -224,6 +246,8 @@ int main(void)
   HAL_CAN_Start(&hcan1);
   HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 
+  // Start UART receive interrupt cycle
+  HAL_UARTEx_ReceiveToIdle_IT(&huart2, UART_Rx_Buffer, UART_RX_BUFFER_SIZE);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -534,7 +558,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, LD2_Pin|CAN_HEARTBEAT_LED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, LD2_Pin|CAN_HEARTBEAT_LED_Pin|UART_ACTIVITY_LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -542,8 +566,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LD2_Pin CAN_HEARTBEAT_LED_Pin */
-  GPIO_InitStruct.Pin = LD2_Pin|CAN_HEARTBEAT_LED_Pin;
+  /*Configure GPIO pins : LD2_Pin CAN_HEARTBEAT_LED_Pin UART_ACTIVITY_LED_Pin */
+  GPIO_InitStruct.Pin = LD2_Pin|CAN_HEARTBEAT_LED_Pin|UART_ACTIVITY_LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
