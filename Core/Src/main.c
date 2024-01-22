@@ -34,6 +34,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define OLED_UART
+
 //#define EXAMPLE_1
 //#define EXAMPLE_2
 //#define HEARTBEAT_EXAMPLE
@@ -144,6 +146,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 	}
 
+#ifdef OLED_UART
+
 	// Clear previous string
 	ssd1306_SetCursor(0, 53);
 	ssd1306_WriteString("                  ", Font_7x10, White);
@@ -151,6 +155,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 	ssd1306_SetCursor(0, 53);
 	ssd1306_WriteString(UART_Rx_Buffer, Font_7x10, White);
 	ssd1306_UpdateScreen();
+#endif
 
 //	HAL_UART_Transmit_IT(huart, UART_Rx_Buffer, Size);
 	HAL_UART_Transmit_IT(huart, "OK\n", 3);
@@ -210,12 +215,14 @@ bool stringToCANMessage(uint8_t *buffer, uint16_t size)
 
 		HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
 
-		// Remove this function call if no display is connected
+#ifdef OLED_UART
 		updateManualValues();
+#endif
 
 		return true;
 	}
-//	else if(strcmp(commandStr, "WAVE"))
+	//TODO: Implement metachronal wave command
+//	else if(strcmp(commandStr, "WAVE") == 0)
 //	{
 //		return true;
 //	}
