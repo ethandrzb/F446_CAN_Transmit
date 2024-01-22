@@ -229,10 +229,26 @@ bool stringToCANMessage(uint8_t *buffer, uint16_t size)
 		return true;
 	}
 	//TODO: Implement metachronal wave command
-//	else if(strcmp(commandStr, "WAVE") == 0)
-//	{
-//		return true;
-//	}
+	else if(strncmp((char *) buffer, (char *) "WAVE", 4) == 0)
+	{
+		int8_t tmpSpeed = 0;
+
+		if(sscanf((char *) buffer, "WAVE %d", &tmpSpeed) != 1)
+		{
+			return false;
+		}
+
+		txData[0] = tmpSpeed;
+
+		// TODO: Change this to 0xFF (broadcast ID)
+		txHeader.StdId = 0x10;
+		txHeader.RTR = CAN_RTR_DATA;
+		txHeader.DLC = 1;
+
+		HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
+
+		return true;
+	}
 
 	return false;
 }
