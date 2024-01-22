@@ -153,12 +153,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 	ssd1306_WriteString("                  ", Font_7x10, White);
 
 	ssd1306_SetCursor(0, 53);
-	ssd1306_WriteString(UART_Rx_Buffer, Font_7x10, White);
+	ssd1306_WriteString((char *) UART_Rx_Buffer, Font_7x10, White);
 	ssd1306_UpdateScreen();
 #endif
 
 //	HAL_UART_Transmit_IT(huart, UART_Rx_Buffer, Size);
-	HAL_UART_Transmit_IT(huart, "OK\n", 3);
+	HAL_UART_Transmit_IT(huart, (uint8_t *) "OK\n", 3);
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
@@ -195,7 +195,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 
 bool stringToCANMessage(uint8_t *buffer, uint16_t size)
 {
-	if(strncmp(buffer, "SET", 3) == 0)
+	if(strncmp((char *) buffer, (char *) "SET", 3) == 0)
 	{
 		unsigned int tmpID = 0;
 		unsigned int tmpAngle = 0;
@@ -357,6 +357,7 @@ int main(void)
 	}
 #endif
 
+// TODO: Move to timer interrupt
 #ifdef HEARTBEAT_EXAMPLE
 	for(uint8_t id = 0x10; id <= 0x20; id += 0x10)
 	{
