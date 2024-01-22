@@ -70,6 +70,9 @@ uint16_t angle = 0;
 
 #define UART_RX_BUFFER_SIZE 20
 uint8_t UART_Rx_Buffer[UART_RX_BUFFER_SIZE];
+
+#define UART_RESPONSE_LENGTH 20
+uint8_t UARTResponseString[UART_RESPONSE_LENGTH];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -139,11 +142,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
 	HAL_GPIO_WritePin(UART_ACTIVITY_LED_GPIO_Port, UART_ACTIVITY_LED_Pin, GPIO_PIN_SET);
-
 	// Toggle LED if conversion and transmission was successful
 	if(stringToCANMessage(UART_Rx_Buffer, Size))
 	{
 		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+		strcpy((char *) UARTResponseString, "OK\n");
+	}
+	else
+	{
+		strcpy((char *) UARTResponseString, "FAILED\n");
 	}
 
 #ifdef OLED_UART
@@ -158,7 +165,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 #endif
 
 //	HAL_UART_Transmit_IT(huart, UART_Rx_Buffer, Size);
-	HAL_UART_Transmit_IT(huart, (uint8_t *) "OK\n", 3);
+	HAL_UART_Transmit_IT(huart, UARTResponseString, strlen((char *) UARTResponseString));
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
