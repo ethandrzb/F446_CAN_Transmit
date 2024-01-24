@@ -186,7 +186,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	if((rxHeader.DLC == 1) && (rxData[0] == expectedHeartbeatData))
 	{
 		// Heart beat received if data matches expected value
-		HAL_GPIO_TogglePin(CAN_HEARTBEAT_LED_GPIO_Port, CAN_HEARTBEAT_LED_Pin);
+		HAL_GPIO_WritePin(CAN_HEARTBEAT_LED_GPIO_Port, CAN_HEARTBEAT_LED_Pin, GPIO_PIN_RESET);
 	}
 }
 
@@ -214,6 +214,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 		HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
 
 		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+		HAL_GPIO_WritePin(CAN_HEARTBEAT_LED_GPIO_Port, CAN_HEARTBEAT_LED_Pin, GPIO_PIN_SET);
 	}
 }
 
