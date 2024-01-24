@@ -233,15 +233,14 @@ bool stringToCANMessage(uint8_t *buffer, uint16_t size)
 	{
 		int8_t tmpSpeed = 0;
 
-		if(sscanf((char *) buffer, "WAVE %d", &tmpSpeed) != 1)
+		if(sscanf((char *) buffer, "WAVE %hhd", &tmpSpeed) != 1)
 		{
 			return false;
 		}
 
 		txData[0] = tmpSpeed;
 
-		// TODO: Change this to 0xFF (broadcast ID)
-		txHeader.StdId = 0x10;
+		txHeader.StdId = 0xFF;
 		txHeader.RTR = CAN_RTR_DATA;
 		txHeader.DLC = 1;
 
