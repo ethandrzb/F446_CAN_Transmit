@@ -201,7 +201,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 
 		HAL_TIM_Base_Stop_IT(&htim6);
 	}
-	if(htim == &htim7)
+	else if(htim == &htim7)
 	{
 		// Store expected response for comparison in RxFifo0Callback
 		// Expected value should be the CAN ID of the node you want to check
@@ -626,7 +626,7 @@ static void MX_TIM7_Init(void)
   htim7.Instance = TIM7;
   htim7.Init.Prescaler = 9000-1;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 10000-1;
+  htim7.Init.Period = 5000-1;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
