@@ -52,6 +52,7 @@ CAN_HandleTypeDef hcan1;
 I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim6;
+TIM_HandleTypeDef htim7;
 
 UART_HandleTypeDef huart2;
 
@@ -82,6 +83,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_CAN1_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_TIM7_Init(void);
 /* USER CODE BEGIN PFP */
 void updateManualValues();
 bool stringToCANMessage(uint8_t *buffer, uint16_t size);
@@ -178,6 +180,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &rxHeader, rxData);
+
 	// Check header length
 	// Will likely need to be converted to a switch statement as more commands are implemented
 	if((rxHeader.DLC == 1) && (rxData[0] == expectedHeartbeatData))
@@ -197,6 +200,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 		HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 		HAL_TIM_Base_Stop_IT(&htim6);
+	}
+	if(htim == &htim7)
+	{
+		// Store expected response for comparison in RxFifo0Callback
+		// Expected value should be the CAN ID of the node you want to check
+		expectedHeartbeatData = (expectedHeartbeatData < 0x20) ? expectedHeartbeatData + 0x10 : 0x10;
+
+		txHeader.StdId = expectedHeartbeatData;
+		txHeader.DLC = 1;
+		txHeader.RTR = CAN_RTR_REMOTE;
+
+		HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
+
+		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 	}
 }
 
@@ -228,7 +245,6 @@ bool stringToCANMessage(uint8_t *buffer, uint16_t size)
 
 		return true;
 	}
-	//TODO: Implement metachronal wave command
 	else if(strncmp((char *) buffer, (char *) "WAVE", 4) == 0)
 	{
 		int8_t tmpSpeed = 0;
@@ -297,6 +313,7 @@ int main(void)
   MX_CAN1_Init();
   MX_TIM6_Init();
   MX_I2C1_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
 
   // Initialize SSD1306 display
@@ -307,10 +324,10 @@ int main(void)
   ssd1306_SetCursor(9, 10);
   ssd1306_WriteString("ID  M   A", Font_11x18, White);
 
+  // Display placeholder values
   ssd1306_SetCursor(9, 30);
   ssd1306_WriteString("XX YY  ZZZ", Font_11x18, White);
   ssd1306_UpdateScreen();
-
 
   // Initialize CAN Tx header
   txHeader.DLC = 1;
@@ -322,6 +339,11 @@ int main(void)
 
   HAL_CAN_Start(&hcan1);
   HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+
+#ifndef HEARTBEAT_EXAMPLE
+  // Start heartbeat timer
+  HAL_TIM_Base_Start_IT(&htim7);
+#endif
 
   // Start UART receive interrupt cycle
   HAL_UARTEx_ReceiveToIdle_IT(&huart2, UART_Rx_Buffer, UART_RX_BUFFER_SIZE);
@@ -379,7 +401,6 @@ int main(void)
 	}
 #endif
 
-// TODO: Move to timer interrupt
 #ifdef HEARTBEAT_EXAMPLE
 	for(uint8_t id = 0x10; id <= 0x20; id += 0x10)
 	{
@@ -582,6 +603,44 @@ static void MX_TIM6_Init(void)
   /* USER CODE BEGIN TIM6_Init 2 */
 
   /* USER CODE END TIM6_Init 2 */
+
+}
+
+/**
+  * @brief TIM7 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM7_Init(void)
+{
+
+  /* USER CODE BEGIN TIM7_Init 0 */
+
+  /* USER CODE END TIM7_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM7_Init 1 */
+
+  /* USER CODE END TIM7_Init 1 */
+  htim7.Instance = TIM7;
+  htim7.Init.Prescaler = 9000-1;
+  htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim7.Init.Period = 10000-1;
+  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim7, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM7_Init 2 */
+
+  /* USER CODE END TIM7_Init 2 */
 
 }
 
