@@ -34,7 +34,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define OLED_UART
+//#define OLED_UART
 
 //#define EXAMPLE_1
 //#define EXAMPLE_2
@@ -205,7 +205,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 	{
 		// Store expected response for comparison in RxFifo0Callback
 		// Expected value should be the CAN ID of the node you want to check
-		expectedHeartbeatData = (expectedHeartbeatData < 0x20) ? expectedHeartbeatData + 0x10 : 0x10;
+		expectedHeartbeatData = (expectedHeartbeatData < 0x40) ? expectedHeartbeatData + 0x10 : 0x10;
 
 		txHeader.StdId = expectedHeartbeatData;
 		txHeader.DLC = 1;
