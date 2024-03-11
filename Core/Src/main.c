@@ -220,6 +220,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 
 bool stringToCANMessage(uint8_t *buffer, uint16_t size)
 {
+  // -= SET Command =-
+  // Syntax: SET <ID> <ANGLE>
+  // Description: Sets an individual servo motor to the specified angle
+  // Parameters
+  // <ID> -- Complete CAN ID of servo (e.g., 0x12 for segment 1 servo 2)
+  // <ANGLE> -- Integer angle between 0 and 270 degrees
+  // Example: SET 12 135
 	if(strncmp((char *) buffer, (char *) "SET", 3) == 0)
 	{
 		unsigned int tmpID = 0;
@@ -246,6 +253,15 @@ bool stringToCANMessage(uint8_t *buffer, uint16_t size)
 
 		return true;
 	}
+
+  // -= WAVE Command =-
+  // Syntax: WAVE <SPEED> <TURN_ANGLE>
+  // Description: Control metachronal wave and turning angle
+  // Parameters
+  // <SPEED> -- Decimal integer between 0 and 127 specifying the speed of the wave. 127 is max speed.
+  // <TURN_ANGLE> -- (Optional) Decimal Integer angle between -135 and 135 degrees specifying the target turning angle of the robot. Remains unchanged if not specified.
+  // Example 1: WAVE 0
+  // Example 2: WAVE 50 -30
 	else if(strncmp((char *) buffer, (char *) "WAVE", 4) == 0)
 	{
 		int8_t tmpSpeed = 0;
